@@ -15,7 +15,7 @@ const ShapeSelector: React.FC<ShapeSelectorProps> = ({ selectedId, onSelect }) =
     <div className="space-y-8">
       {categories.map(cat => (
         <div key={cat} className="space-y-4">
-          <h3 className="text-[10px] uppercase tracking-widest text-[#a1a1a1] font-semibold px-2">{cat}</h3>
+          <h3 className="text-[10px] uppercase tracking-widest text-slate-400 font-bold px-2">{cat}</h3>
           <div className="grid grid-cols-3 md:grid-cols-2 gap-3">
             {SHAPES.filter(s => s.category === cat).map(shape => (
               <button
@@ -24,15 +24,15 @@ const ShapeSelector: React.FC<ShapeSelectorProps> = ({ selectedId, onSelect }) =
                 className={`
                   aspect-square rounded-2xl flex items-center justify-center p-3 transition-all duration-300
                   ${selectedId === shape.id 
-                    ? 'bg-[#f5f0e9] border border-[#dcd4cb] scale-105 shadow-sm' 
-                    : 'hover:bg-[#faf9f6] border border-transparent'
+                    ? 'bg-blue-50 border border-blue-100 scale-105 shadow-sm' 
+                    : 'hover:bg-slate-50 border border-transparent'
                   }
                 `}
               >
                 <svg viewBox="0 0 100 100" className="w-full h-full">
                   <path 
                     d={shape.path} 
-                    fill={selectedId === shape.id ? "#5c5c5c" : "#dcd4cb"} 
+                    fill={selectedId === shape.id ? "#3b82f6" : "#cbd5e1"} 
                     className="transition-colors duration-300"
                   />
                 </svg>
