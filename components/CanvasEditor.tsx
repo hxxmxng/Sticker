@@ -9,12 +9,25 @@ interface CanvasEditorProps {
   setTransform: React.Dispatch<React.SetStateAction<Transform>>;
 }
 
-const CANVAS_SIZE = 500;
-
 const CanvasEditor: React.FC<CanvasEditorProps> = ({ image, shape, transform, setTransform }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartPos = useRef({ x: 0, y: 0 });
+  const initialTouchDistance = useRef<number | null>(null);
+  const initialScale = useRef<number>(1);
+
+  // 반응형 캔버스 크기 계산
+  const [canvasSize, setCanvasSize] = useState(450);
+
+  useEffect(() => {
+    const updateSize = () => {
+      const size = Math.min(window.innerWidth * 0.85, window.innerHeight * 0.5, 450);
+      setCanvasSize(size);
+    };
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -23,28 +36,27 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({ image, shape, transform, se
     if (!ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = CANVAS_SIZE * dpr;
-    canvas.height = CANVAS_SIZE * dpr;
+    canvas.width = canvasSize * dpr;
+    canvas.height = canvasSize * dpr;
     ctx.scale(dpr, dpr);
 
-    ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    ctx.clearRect(0, 0, canvasSize, canvasSize);
 
     ctx.save();
     const shapePath = new Path2D(shape.path);
     
-    ctx.translate(0, 0);
-    ctx.scale(CANVAS_SIZE/100, CANVAS_SIZE/100);
+    ctx.scale(canvasSize/100, canvasSize/100);
     ctx.clip(shapePath);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
 
     const imgWidth = image.width;
     const imgHeight = image.height;
-    const baseScale = Math.min(CANVAS_SIZE / imgWidth, CANVAS_SIZE / imgHeight);
+    const baseScale = Math.min(canvasSize / imgWidth, canvasSize / imgHeight);
     
     const finalScale = baseScale * transform.scale;
-    const drawX = CANVAS_SIZE / 2 + transform.x;
-    const drawY = CANVAS_SIZE / 2 + transform.y;
+    const drawX = canvasSize / 2 + transform.x;
+    const drawY = canvasSize / 2 + transform.y;
 
     ctx.translate(drawX, drawY);
     ctx.rotate((transform.rotation * Math.PI) / 180);
@@ -57,75 +69,94 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({ image, shape, transform, se
     );
 
     ctx.restore();
-  }, [image, shape, transform]);
+  }, [image, shape, transform, canvasSize]);
 
   useEffect(() => {
     draw();
   }, [draw]);
 
-  const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
+  const getDistance = (touches: React.TouchList) => {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      setIsDragging(true);
+      dragStartPos.current = { 
+        x: e.touches[0].clientX - transform.x, 
+        y: e.touches[0].clientY - transform.y 
+      };
+    } else if (e.touches.length === 2) {
+      initialTouchDistance.current = getDistance(e.touches);
+      initialScale.current = transform.scale;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 1 && isDragging) {
+      setTransform(prev => ({
+        ...prev,
+        x: e.touches[0].clientX - dragStartPos.current.x,
+        y: e.touches[0].clientY - dragStartPos.current.y
+      }));
+    } else if (e.touches.length === 2 && initialTouchDistance.current) {
+      const currentDistance = getDistance(e.touches);
+      const ratio = currentDistance / initialTouchDistance.current;
+      setTransform(prev => ({
+        ...prev,
+        scale: Math.max(0.1, Math.min(10, initialScale.current * ratio))
+      }));
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    initialTouchDistance.current = null;
+  };
+
+  // Mouse fallback
+  const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
-    const pos = 'touches' in e ? e.touches[0] : (e as React.MouseEvent);
     dragStartPos.current = { 
-      x: pos.clientX - transform.x, 
-      y: pos.clientY - transform.y 
+      x: e.clientX - transform.x, 
+      y: e.clientY - transform.y 
     };
   };
 
-  const handleMouseMove = (e: React.MouseEvent | React.TouchEvent) => {
+  const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
-    const pos = 'touches' in e ? e.touches[0] : (e as React.MouseEvent);
     setTransform(prev => ({
       ...prev,
-      x: pos.clientX - dragStartPos.current.x,
-      y: pos.clientY - dragStartPos.current.y
+      x: e.clientX - dragStartPos.current.x,
+      y: e.clientY - dragStartPos.current.y
     }));
-  };
-
-  const handleMouseUp = () => setIsDragging(false);
-
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const zoomIntensity = 0.001;
-    const newScale = Math.max(0.1, Math.min(10, transform.scale - e.deltaY * zoomIntensity));
-    setTransform(prev => ({ ...prev, scale: newScale }));
-  };
-
-  const handleDragStart = async (e: React.DragEvent) => {
-    if (!canvasRef.current) return;
-    const blob = await new Promise<Blob | null>(res => canvasRef.current?.toBlob(res, 'image/png'));
-    if (!blob) return;
-    const url = URL.createObjectURL(blob);
-    e.dataTransfer.setData('text/plain', 'Sticker');
-    e.dataTransfer.setData('text/html', `<img src="${url}" />`);
   };
 
   return (
     <div className="relative group">
       <div 
-        className="canvas-checkerboard rounded-[40px] shadow-2xl overflow-hidden cursor-move touch-none border-4 border-white ring-1 ring-slate-200 transition-all hover:scale-[1.01]"
-        style={{ width: CANVAS_SIZE, height: CANVAS_SIZE }}
+        className="canvas-checkerboard rounded-[32px] shadow-xl overflow-hidden cursor-move touch-none border-2 border-white ring-1 ring-slate-200 transition-all active:scale-[0.99]"
+        style={{ width: canvasSize, height: canvasSize }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onTouchStart={handleMouseDown}
-        onTouchMove={handleMouseMove}
-        onTouchEnd={handleMouseUp}
-        onWheel={handleWheel}
-        draggable
-        onDragStart={handleDragStart}
+        onMouseUp={() => setIsDragging(false)}
+        onMouseLeave={() => setIsDragging(false)}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         <canvas 
           ref={canvasRef} 
           className="w-full h-full"
-          style={{ width: CANVAS_SIZE, height: CANVAS_SIZE }}
+          style={{ width: canvasSize, height: canvasSize }}
         />
       </div>
       
-      <div className="absolute -top-12 left-0 right-0 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-        <p className="text-[11px] text-slate-500 bg-white/80 backdrop-blur px-3 py-1 rounded-full border border-slate-200 shadow-sm">
-          스크롤하여 확대/축소 • 드래그하여 이동 • 클릭하여 모양 변경
+      <div className="absolute -bottom-10 left-0 right-0 flex justify-center opacity-40 group-hover:opacity-100 transition-opacity">
+        <p className="text-[10px] text-slate-500 font-medium tracking-tight">
+          Pinch to Zoom • Drag to Move
         </p>
       </div>
     </div>

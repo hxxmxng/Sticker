@@ -14,13 +14,6 @@ const App: React.FC = () => {
   const [feedback, setFeedback] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      loadImage(file);
-    }
-  };
-
   const loadImage = (file: File) => {
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -35,12 +28,15 @@ const App: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) loadImage(file);
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      loadImage(file);
-    }
+    if (file && file.type.startsWith('image/')) loadImage(file);
   };
 
   const showFeedback = (msg: string) => {
@@ -50,18 +46,18 @@ const App: React.FC = () => {
 
   return (
     <div 
-      className="h-screen w-screen flex flex-col md:flex-row-reverse bg-[#f8fafc] select-none"
+      className="h-screen w-screen flex flex-col md:flex-row-reverse bg-slate-50 select-none"
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
     >
-      {/* Sidebar - Shape Selection (Right side on desktop) */}
-      <div className="w-full md:w-80 h-1/3 md:h-full border-b md:border-b-0 md:border-l border-slate-200 bg-white flex flex-col overflow-hidden">
-        <div className="p-6">
-          <h1 className="text-xl font-semibold text-slate-800 tracking-tight">StickerStudio</h1>
-          <p className="text-sm text-slate-400 mt-1 font-light">Organic photo sticker lab</p>
+      {/* Sidebar - Shape Selection (Narrower for Split View) */}
+      <div className="w-full md:w-64 h-[40%] md:h-full border-b md:border-b-0 md:border-l border-slate-200 bg-white flex flex-col overflow-hidden">
+        <div className="p-4 md:p-6 border-b border-slate-50">
+          <h1 className="text-lg font-semibold text-slate-700 tracking-tight">StickerStudio</h1>
+          <p className="text-[11px] text-slate-400 font-light uppercase tracking-wider">Muted Lab</p>
         </div>
         
-        <div className="flex-1 overflow-y-auto px-4 pb-12">
+        <div className="flex-1 overflow-y-auto px-3 pb-8">
           <ShapeSelector 
             selectedId={selectedShape.id} 
             onSelect={setSelectedShape} 
@@ -69,34 +65,25 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Workspace (Left side on desktop) */}
-      <main className="flex-1 relative flex items-center justify-center p-4 md:p-12 overflow-hidden">
+      {/* Main Workspace */}
+      <main className="flex-1 relative flex flex-col items-center justify-center p-4 overflow-hidden">
         {state === 'idle' ? (
           <div className="flex flex-col items-center justify-center space-y-6">
-            <div className="w-64 h-64 border-2 border-dashed border-slate-200 rounded-[40px] flex items-center justify-center bg-white/50 transition-all hover:bg-white hover:border-blue-200 group">
-              <div className="flex flex-col items-center text-slate-300 group-hover:text-blue-400 transition-colors">
-                <svg className="w-12 h-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <div 
+              onClick={() => fileInputRef.current?.click()}
+              className="w-56 h-56 border border-dashed border-slate-300 rounded-[32px] flex items-center justify-center bg-white/40 cursor-pointer hover:bg-white transition-colors group"
+            >
+              <div className="flex flex-col items-center text-slate-400 group-hover:text-slate-500 transition-colors">
+                <svg className="w-8 h-8 mb-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 4v16m8-8H4" />
                 </svg>
-                <span className="text-sm font-light">사진을 여기에 드래그하세요</span>
+                <span className="text-xs font-light">탭하여 사진 선택</span>
               </div>
             </div>
-            <button 
-              onClick={() => fileInputRef.current?.click()}
-              className="px-8 py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-full text-sm font-medium transition-all shadow-md active:scale-95"
-            >
-              파일 선택하기
-            </button>
-            <input 
-              type="file" 
-              className="hidden" 
-              ref={fileInputRef} 
-              accept="image/*" 
-              onChange={handleFileChange} 
-            />
+            <input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handleFileChange} />
           </div>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center space-y-8 animate-in fade-in duration-500">
+          <div className="w-full h-full flex flex-col items-center justify-center space-y-6 animate-in fade-in duration-300">
             <CanvasEditor 
               image={image} 
               shape={selectedShape} 
@@ -116,7 +103,7 @@ const App: React.FC = () => {
         )}
 
         {feedback && (
-          <div className="absolute top-10 left-1/2 -translate-x-1/2 px-6 py-3 bg-slate-800 text-white rounded-full text-sm shadow-xl z-50 transition-all animate-in slide-in-from-top-4">
+          <div className="absolute top-6 left-1/2 -translate-x-1/2 px-5 py-2.5 bg-slate-800/90 backdrop-blur text-white rounded-full text-[13px] shadow-lg z-50 animate-in slide-in-from-top-2">
             {feedback}
           </div>
         )}
