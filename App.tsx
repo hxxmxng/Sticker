@@ -21,7 +21,8 @@ const App: React.FC = () => {
       img.onload = () => {
         setImage(img);
         setState('editing');
-        setTransform({ x: 0, y: 0, scale: 0.8, rotation: 0 });
+        // Start with a clean scale that fits well in the preview
+        setTransform({ x: 0, y: 0, scale: 1.0, rotation: 0 });
       };
       img.src = event.target?.result as string;
     };
@@ -41,69 +42,75 @@ const App: React.FC = () => {
 
   const showFeedback = (msg: string) => {
     setFeedback(msg);
-    setTimeout(() => setFeedback(null), 2000);
+    setTimeout(() => setFeedback(null), 2400);
   };
 
   return (
     <div 
-      className="h-screen w-screen flex flex-col md:flex-row-reverse bg-slate-50 select-none"
+      className="h-screen w-screen flex flex-col md:flex-row-reverse bg-[#f8fafc] select-none overflow-hidden"
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
     >
-      {/* Sidebar - Shape Selection (Narrower for Split View) */}
-      <div className="w-full md:w-64 h-[40%] md:h-full border-b md:border-b-0 md:border-l border-slate-200 bg-white flex flex-col overflow-hidden">
-        <div className="p-4 md:p-6 border-b border-slate-50">
-          <h1 className="text-lg font-semibold text-slate-700 tracking-tight">StickerStudio</h1>
-          <p className="text-[11px] text-slate-400 font-light uppercase tracking-wider">Muted Lab</p>
+      {/* Sidebar - Refined Design */}
+      <aside className="w-full md:w-72 h-[35%] md:h-full border-b md:border-b-0 md:border-l border-slate-200 bg-white flex flex-col shadow-[inset_1px_0_0_rgba(0,0,0,0.02)] z-10">
+        <div className="p-6 md:p-8">
+          <div className="flex items-center gap-2.5 mb-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-slate-900 shadow-sm"></div>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">StickerStudio</h1>
+          </div>
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.25em]">Est. 2025 • Creative Lab</p>
         </div>
         
-        <div className="flex-1 overflow-y-auto px-3 pb-8">
+        <div className="flex-1 overflow-y-auto px-6 pb-12">
           <ShapeSelector 
             selectedId={selectedShape.id} 
             onSelect={setSelectedShape} 
           />
         </div>
-      </div>
+      </aside>
 
       {/* Main Workspace */}
-      <main className="flex-1 relative flex flex-col items-center justify-center p-4 overflow-hidden">
+      <main className="flex-1 relative flex flex-col items-center justify-center p-6 md:p-12 overflow-visible bg-[#fbfcfd]">
         {state === 'idle' ? (
-          <div className="flex flex-col items-center justify-center space-y-6">
-            <div 
-              onClick={() => fileInputRef.current?.click()}
-              className="w-56 h-56 border border-dashed border-slate-300 rounded-[32px] flex items-center justify-center bg-white/40 cursor-pointer hover:bg-white transition-colors group"
-            >
-              <div className="flex flex-col items-center text-slate-400 group-hover:text-slate-500 transition-colors">
-                <svg className="w-8 h-8 mb-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 4v16m8-8H4" />
-                </svg>
-                <span className="text-xs font-light">탭하여 사진 선택</span>
-              </div>
+          <div 
+            onClick={() => fileInputRef.current?.click()}
+            className="group w-64 h-64 border-2 border-dashed border-slate-200 rounded-[56px] flex flex-col items-center justify-center bg-white cursor-pointer hover:border-slate-400 hover:shadow-2xl hover:shadow-slate-200/40 transition-all duration-500 active:scale-[0.97]"
+          >
+            <div className="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center mb-5 group-hover:scale-110 group-hover:bg-slate-100 transition-all duration-300">
+              <svg className="w-6 h-6 text-slate-400 group-hover:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+              </svg>
             </div>
+            <span className="text-[12px] font-bold text-slate-400 tracking-widest group-hover:text-slate-800 transition-colors uppercase">Upload Image</span>
             <input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handleFileChange} />
           </div>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center space-y-6 animate-in fade-in duration-300">
-            <CanvasEditor 
-              image={image} 
-              shape={selectedShape} 
-              transform={transform}
-              setTransform={setTransform}
-            />
+          <div className="w-full h-full flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-700">
+            <div className="flex-1 flex items-center justify-center w-full overflow-visible">
+              <CanvasEditor 
+                image={image} 
+                shape={selectedShape} 
+                transform={transform}
+                setTransform={setTransform}
+              />
+            </div>
             
-            <Toolbar 
-              image={image}
-              shape={selectedShape}
-              transform={transform}
-              setTransform={setTransform}
-              onReset={() => { setImage(null); setState('idle'); }}
-              onFeedback={showFeedback}
-            />
+            <div className="w-full max-w-2xl py-10 flex justify-center z-20">
+              <Toolbar 
+                image={image}
+                shape={selectedShape}
+                transform={transform}
+                setTransform={setTransform}
+                onReset={() => { setImage(null); setState('idle'); }}
+                onFeedback={showFeedback}
+              />
+            </div>
           </div>
         )}
 
+        {/* Feedback Toast */}
         {feedback && (
-          <div className="absolute top-6 left-1/2 -translate-x-1/2 px-5 py-2.5 bg-slate-800/90 backdrop-blur text-white rounded-full text-[13px] shadow-lg z-50 animate-in slide-in-from-top-2">
+          <div className="fixed bottom-10 left-1/2 -translate-x-1/2 px-7 py-3.5 bg-slate-900 text-white rounded-2xl text-[13px] font-semibold shadow-2xl z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
             {feedback}
           </div>
         )}

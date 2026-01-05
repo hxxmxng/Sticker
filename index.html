@@ -7,26 +7,33 @@
     <title>StickerStudio</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="apple-touch-icon" href="/icon.png" />
-    <link rel="icon" type="image/png" href="/icon.png" />
     <style>
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f1f5f9;
-            color: #334155;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
             overflow: hidden;
-            touch-action: none; /* 브라우저 기본 제스처 방해 금지 */
+            touch-action: none;
         }
         .canvas-checkerboard {
-            background-image: linear-gradient(45deg, #e2e8f0 25%, transparent 25%), 
-                              linear-gradient(-45deg, #e2e8f0 25%, transparent 25%), 
-                              linear-gradient(45deg, transparent 75%, #e2e8f0 75%), 
-                              linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
-            background-size: 16px 16px;
-            background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+            background-image: linear-gradient(45deg, #f1f5f9 25%, transparent 25%), 
+                              linear-gradient(-45deg, #f1f5f9 25%, transparent 25%), 
+                              linear-gradient(45deg, transparent 75%, #f1f5f9 75%), 
+                              linear-gradient(-45deg, transparent 75%, #f1f5f9 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        * {
+            -webkit-tap-highlight-color: transparent;
+            transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
         }
         ::-webkit-scrollbar {
-            width: 4px;
+            width: 5px;
         }
         ::-webkit-scrollbar-thumb {
             background: #cbd5e1;
