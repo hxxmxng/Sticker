@@ -1,9 +1,10 @@
 
+// Updated Shape interface to include new categories: 'tape' and 'animals'
 export interface Shape {
   id: string;
   name: string;
   path: string;
-  category: 'basic' | 'organic' | 'modern' | 'frames';
+  category: 'basic' | 'organic' | 'modern' | 'frames' | 'tape' | 'animals';
 }
 
 export interface Transform {

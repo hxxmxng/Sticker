@@ -41,12 +41,9 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({ image, shape, transform, se
 
     ctx.clearRect(0, 0, canvasSize, canvasSize);
 
-    // 1. 도형 프레임(마스크) 설정
-    // 캔버스의 약 80% 크기로 중앙에 배치 (여유 공간 확보)
     const frameSize = canvasSize * 0.8;
     const shapeScale = frameSize / 100;
 
-    // 오프스크린 버퍼에서 합성 작업 수행
     const buffer = document.createElement('canvas');
     buffer.width = canvasSize * dpr;
     buffer.height = canvasSize * dpr;
@@ -68,14 +65,12 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({ image, shape, transform, se
     bctx.globalCompositeOperation = 'source-in';
     bctx.save();
     
-    // 사진의 기준점은 캔버스 중앙
     bctx.translate(canvasSize / 2 + transform.x, canvasSize / 2 + transform.y);
     bctx.rotate((transform.rotation * Math.PI) / 180);
     
     const imgWidth = image.width;
     const imgHeight = image.height;
     
-    // 사진의 기본 크기를 프레임에 맞춤 (Cover 방식)
     const baseScale = frameSize / Math.min(imgWidth, imgHeight);
     const finalScale = baseScale * transform.scale;
     
@@ -88,16 +83,16 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({ image, shape, transform, se
     );
     bctx.restore();
 
-    // 결과물을 메인 캔버스에 렌더링
     ctx.drawImage(buffer, 0, 0, canvasSize, canvasSize);
 
-    // 가이드 라인 (선택 사항: 편집 중임을 알리는 얇은 테두리)
+    // 가이드 라인
     ctx.save();
     ctx.translate(canvasSize / 2, canvasSize / 2);
     ctx.scale(shapeScale, shapeScale);
     ctx.translate(-50, -50);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-    ctx.lineWidth = 1 / shapeScale;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.lineWidth = 1.5 / shapeScale;
+    ctx.setLineDash([5, 5]);
     ctx.stroke(shapePath);
     ctx.restore();
 
@@ -106,6 +101,24 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({ image, shape, transform, se
   useEffect(() => {
     draw();
   }, [draw]);
+
+  // 마우스 휠을 이용한 정밀 스케일 조절
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? 0.95 : 1.05;
+      setTransform(prev => ({
+        ...prev,
+        scale: Math.max(0.1, Math.min(15, prev.scale * delta))
+      }));
+    };
+
+    canvas.addEventListener('wheel', handleWheel, { passive: false });
+    return () => canvas.removeEventListener('wheel', handleWheel);
+  }, [setTransform]);
 
   const getDistance = (touches: React.TouchList) => {
     const dx = touches[0].clientX - touches[1].clientX;
@@ -135,13 +148,16 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({ image, shape, transform, se
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (e.touches.length === 2 && initialTouchDistance.current !== null) {
+      const currentDistance = getDistance(e.touches);
+      const ratio = currentDistance / initialTouchDistance.current;
+      
+      // 감도 조절을 가미한 스케일링
+      const newScale = Math.max(0.1, Math.min(15, initialScale.current * ratio));
+
+      // 위치 이동 동시 처리
       const mid = getMidpoint(e.touches);
       const dx = mid.x - dragStartPos.current.x;
       const dy = mid.y - dragStartPos.current.y;
-
-      const currentDistance = getDistance(e.touches);
-      const ratio = currentDistance / initialTouchDistance.current;
-      const newScale = Math.max(0.1, Math.min(10, initialScale.current * ratio));
 
       setTransform(prev => ({
         ...prev,
@@ -149,7 +165,7 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({ image, shape, transform, se
         y: initialTransform.current.y + dy,
         scale: newScale
       }));
-    } else if (e.touches.length === 1) {
+    } else if (e.touches.length === 1 && initialTouchDistance.current === null) {
       const dx = e.touches[0].clientX - dragStartPos.current.x;
       const dy = e.touches[0].clientY - dragStartPos.current.y;
       setTransform(prev => ({
@@ -201,12 +217,11 @@ const CanvasEditor: React.FC<CanvasEditorProps> = ({ image, shape, transform, se
       
       <div className="absolute -bottom-14 left-0 right-0 flex justify-center opacity-60 group-hover:opacity-100 transition-all duration-300 pointer-events-none">
         <div className="glass px-5 py-2 rounded-full border border-slate-200/50 shadow-sm flex items-center gap-3">
-          <div className="flex gap-1">
-            <div className="w-1 h-1 rounded-full bg-slate-400"></div>
-            <div className="w-1 h-1 rounded-full bg-slate-400"></div>
-          </div>
+           <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+          </svg>
           <p className="text-[10px] text-slate-500 font-bold tracking-[0.1em] uppercase">
-            Pan & Pinch to Crop Photo
+            Pan to Move • Scroll or Pinch to Zoom
           </p>
         </div>
       </div>
